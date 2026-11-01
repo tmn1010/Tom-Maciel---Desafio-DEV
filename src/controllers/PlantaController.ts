@@ -84,9 +84,9 @@ export const readPlantaById = async (req: Request, res: Response) => {
 
 export const readAllPlantas = async (req: Request, res: Response) => {
     try {
-        const { luminosidade, petFriendly } = req.query;
+        const { luminosidade, petFriendly, nome, ordem } = req.query;
 
-        const filtros: { luminosidade?: Luminosidade; petFriendly?: boolean } = {};
+        const filtros: { luminosidade?: Luminosidade; petFriendly?: boolean; nome?: string; ordem?: "preco" | "nome" } = {};
         
         if (luminosidade !== undefined) {
             if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {
@@ -103,6 +103,20 @@ export const readAllPlantas = async (req: Request, res: Response) => {
             filtros.petFriendly = petFriendly === "true";
         }
 
+        if (nome !== undefined) {
+            if (typeof nome !== "string") {
+                return res.status(400).json({ message: "O filtro 'nome' deve ser uma string." });
+            }
+
+            filtros.nome = String(nome);
+        }
+
+        if (ordem !== undefined) {
+            if (ordem !== "preco" && ordem !== "nome") {
+                return res.status(400).json({ message: "O filtro 'ordem' deve ser 'preco' ou 'nome'." });
+            }
+            filtros.ordem = ordem;
+        }
         const plantas = await PlantaRepository.findAllPlantas(filtros);
         return res.status(200).json(plantas);
     } catch (error) {
@@ -215,5 +229,15 @@ export const readValorTotalEstoque = async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Erro ao calcular o valor do estoque." });
+    }
+};
+
+export const readEsgotadas = async (req: Request, res: Response) => {
+    try {
+        const plantas = await PlantaRepository.findEsgotadas();
+        return res.status(200).json(plantas);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erro ao buscar plantas esgotadas." });
     }
 };
