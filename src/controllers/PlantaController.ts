@@ -169,3 +169,51 @@ export const deletePlanta = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Erro ao deletar planta." });
     }
 };
+
+export const sellPlanta = async (req: Request, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+
+        if (!Number.isInteger(id)) {
+            return res.status(400).json({ message: "O id deve ser um número inteiro." });
+        }
+
+        const { quantidade } = req.body;
+
+        if (!Number.isInteger(quantidade) || quantidade <= 0) {
+            return res.status(400).json({ message: "A quantidade deve ser um número inteiro maior que zero." });
+        }
+
+        const planta = await PlantaRepository.findPlantaById(id);
+
+        if (!planta) {
+            return res.status(404).json({ message: "Planta não encontrada." });
+        }
+
+        const vendidas = await PlantaRepository.sellPlanta(id, quantidade);
+
+        if (vendidas === 0) {
+            return res.status(400).json({ message: "Estoque insuficiente para a venda." });
+        }
+
+        const plantaAtualizada = await PlantaRepository.findPlantaById(id);
+        return res.status(200).json(plantaAtualizada);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erro ao realizar venda." });
+    }
+};
+
+export const readValorTotalEstoque = async (req: Request, res: Response) => {
+    try {
+        const plantas = await PlantaRepository.findPrecoEEstoque();
+
+        const valorTotalEmCentavos = plantas.reduce((soma, p) => soma + p.preco * p.estoque, 0);
+        const totalDeVasos = plantas.reduce((soma, p) => soma + p.estoque, 0);
+
+        return res.status(200).json({ valorTotalEmCentavos, totalDeVasos });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erro ao calcular o valor do estoque." });
+    }
+};
