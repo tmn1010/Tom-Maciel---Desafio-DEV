@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Luminosidade } from "@prisma/client"
+import { Luminosidade } from "@prisma/client";
 import * as PlantaRepository from "@repositories/PlantaRepository";
 
 export const createPlanta = async (req: Request, res: Response) => {
@@ -51,5 +51,55 @@ export const createPlanta = async (req: Request, res: Response) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Erro ao criar planta" });
+    }
+};
+
+export const readPlantaById = async (req: Request, res: Response) => {
+    try {
+        const id = Number(req.params.id);
+
+        if (!Number.isInteger(id)) {
+            return res.status(400).json({ message: "O id deve ser um número inteiro." });
+        }
+
+        const planta = await PlantaRepository.findPlantaById(id);
+
+        if (!planta) {
+            return res.status(404).json({ message: "Planta não encontrada." });
+        }
+
+        return res.status(200).json(planta);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erro ao buscar planta." });
+    }
+};
+
+export const readAllPlantas = async (req: Request, res: Response) => {
+    try {
+        const { luminosidade, petFriendly } = req.query;
+
+        const filtros: { luminosidade?: Luminosidade; petFriendly?: boolean } = {};
+
+        if (luminosidade !== undefined) {
+            if (!Object.values(Luminosidade).includes(luminosidade as Luminosidade)) {
+                return res.status(400).json({ message: "Luminosidade inválida. Deve ser 'SOMBRA', 'MEIA_SOMBRA' ou 'SOL_PLENO'" });
+            }
+            filtros.luminosidade = luminosidade as Luminosidade;
+        }
+
+        if (petFriendly !== undefined) {
+            if (petFriendly !== "true" && petFriendly !== "false") {
+                return res.status(400).json({ message: "O filtro 'petFriendly' deve ser 'true' ou 'false'." });
+            }
+            
+            filtros.petFriendly = petFriendly === "true";
+        }
+
+        const plantas = await PlantaRepository.findAllPlantas(filtros);
+        return res.status(200).json(plantas);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erro ao buscar plantas." });
     }
 };
